@@ -10,7 +10,7 @@
 
 #include "cmsis_SPI1.h"
 #include "st7789_cmds.h"
-#include "utils/colors.h"
+#include "st7789/colors.h"
 #include "display_st7789.h"
 #include "st7789_symbols.h"
 
