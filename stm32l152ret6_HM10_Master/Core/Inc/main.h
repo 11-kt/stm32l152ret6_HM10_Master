@@ -36,7 +36,9 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+extern uint8_t rxBuf[];
+extern volatile uint8_t isConnected;
+extern volatile uint8_t isTemp;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -57,6 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define ble_brk_Pin GPIO_PIN_12
+#define ble_brk_GPIO_Port GPIOC
 
 /* USER CODE BEGIN Private defines */
 
