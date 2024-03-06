@@ -39,6 +39,8 @@ extern "C" {
 extern uint8_t rxBuf[];
 extern volatile uint8_t isConnected;
 extern volatile uint8_t isTemp;
+extern uint16_t currPing;
+extern char * ping;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -55,7 +57,10 @@ extern volatile uint8_t isTemp;
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void st7789_DrawStartScreen();
+void st7789_DrawErrScreen();
+void st7789_DrawBleConnScreen();
+void st7789_DrawDataScreen();
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
