@@ -53,7 +53,7 @@ DMA_HandleTypeDef hdma_uart4_rx;
 
 /* USER CODE BEGIN PV */
 volatile uint8_t isConnected = 0;
-volatile uint8_t isTemp = 0;
+volatile uint8_t msgType = 0;
 
 char temp[10] = {'\0'};
 char rssi[10] = {'\0'};
@@ -138,7 +138,7 @@ int main(void)
   HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rxBuf, rxBuf_SIZE);
   __HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
 
-  HAL_TIM_Base_Start_IT(&htim3);
+//  HAL_TIM_Base_Start_IT(&htim3);
   HAL_TIM_Base_Start_IT(&htim4);
 
   /* USER CODE END 2 */
@@ -308,7 +308,7 @@ static void MX_TIM4_Init(void)
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 31999;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 2350;;
+  htim4.Init.Period = 3000;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
@@ -419,26 +419,30 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if(htim==&htim3) {
-		currPing++;
-		snprintf(currentPingStr, sizeof(currentPingStr), "%d", currPing);
-		strcat(currentTxBuf, ping);
-		strcat(currentTxBuf, currentPingStr);
-
-		HAL_UART_Transmit(&huart4, (uint8_t *) currentTxBuf, 100, 0xFFFF);
-		memset(currentTxBuf, 0, 50);
-		memset(currentPingStr, 0, 20);
+//		currPing++;
+//		snprintf(currentPingStr, sizeof(currentPingStr), "%d", currPing);
+//		strcat(currentTxBuf, ping);
+//		strcat(currentTxBuf, currentPingStr);
+//
+//		HAL_UART_Transmit(&huart4, (uint8_t *) currentTxBuf, 100, 0xFFFF);
+//		memset(currentTxBuf, 0, 50);
+//		memset(currentPingStr, 0, 20);
 	}
 	if(htim==&htim4) {
 		if (isConnected) {
-			if (isTemp) {
-				HAL_UART_Transmit(&huart4, getCommand(TEMP_GET), strlen((char *) getCommand(TEMP_GET)), 0x1000);
-			}
-			else {
-				HAL_UART_Transmit(&huart4, getCommand(RSSI_GET), strlen((char *) getCommand(RSSI_GET)), 0x1000);
+			switch (msgType) {
+				case 0:
+					HAL_UART_Transmit(&huart4, getCommand(TEMP_GET), strlen((char *) getCommand(TEMP_GET)), 0x1000);
+					break;
+				case 4:
+					HAL_UART_Transmit(&huart4, getCommand(RSSI_GET), strlen((char *) getCommand(RSSI_GET)), 0x1000);
+					break;
+				default:
+					transmitPing();
+					break;
 			}
 		}
 	}
-
 }
 
 void st7789_DrawStartScreen() {
@@ -472,6 +476,17 @@ void st7789_DrawDataScreen() {
 
 	st7789_PrintString(20, 165, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, "RX/TX/Loss:");
 	st7789_PrintString(20, 185, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, "Последнее сообщение:");
+}
+
+void transmitPing() {
+	currPing++;
+	snprintf(currentPingStr, sizeof(currentPingStr), "%d", currPing);
+	strcat(currentTxBuf, ping);
+	strcat(currentTxBuf, currentPingStr);
+
+	HAL_UART_Transmit(&huart4, (uint8_t *) currentTxBuf, 100, 0xFFFF);
+	memset(currentTxBuf, 0, 50);
+	memset(currentPingStr, 0, 20);
 }
 /* USER CODE END 4 */
 
