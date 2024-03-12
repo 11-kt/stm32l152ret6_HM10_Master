@@ -21,7 +21,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
+#include "HM-10/recieveData.h"
+#include "HM-10/HM10_Setup.h"
+#include "st7789/cmsis_SPI1.h"
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,13 +45,24 @@
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim2;
-TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart4;
 DMA_HandleTypeDef hdma_uart4_rx;
 
 /* USER CODE BEGIN PV */
+volatile uint8_t isConnected = 0;
+volatile uint8_t msgType = 0;
 
+char temp[10] = {'\0'};
+char rssi[10] = {'\0'};
+
+uint16_t currPing = -1;
+char * ping = "ping";
+
+
+char currentTxBuf[50];
+char currentPingStr[20];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -55,15 +70,14 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_TIM2_Init(void);
-static void MX_TIM3_Init(void);
 static void MX_UART4_Init(void);
+static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
 /* USER CODE END 0 */
 
 /**
@@ -96,9 +110,32 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_TIM2_Init();
-  MX_TIM3_Init();
   MX_UART4_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start(&htim2);
+
+  CMSIS_GPIO_init();
+  CMSIS_SPI1_init();
+  st7789_init();
+
+  st7789_DrawStartScreen();
+  if (setupMaster(&huart4, ble_brk_GPIO_Port, ble_brk_Pin) != OK) {
+	  st7789_DrawErrScreen();
+	  return HM10_ERROR;
+  }
+
+  st7789_DrawBleConnScreen();
+
+  connectOtherHM10(&huart4);
+  isConnected = 1;
+
+  st7789_DrawDataScreen();
+
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rxBuf, rxBuf_SIZE);
+  __HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
+
+  HAL_TIM_Base_Start_IT(&htim4);
 
   /* USER CODE END 2 */
 
@@ -129,11 +166,12 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL4;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL6;
   RCC_OscInitStruct.PLL.PLLDIV = RCC_PLL_DIV3;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -201,47 +239,47 @@ static void MX_TIM2_Init(void)
 }
 
 /**
-  * @brief TIM3 Initialization Function
+  * @brief TIM4 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_TIM3_Init(void)
+static void MX_TIM4_Init(void)
 {
 
-  /* USER CODE BEGIN TIM3_Init 0 */
+  /* USER CODE BEGIN TIM4_Init 0 */
 
-  /* USER CODE END TIM3_Init 0 */
+  /* USER CODE END TIM4_Init 0 */
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
 
-  /* USER CODE BEGIN TIM3_Init 1 */
+  /* USER CODE BEGIN TIM4_Init 1 */
 
-  /* USER CODE END TIM3_Init 1 */
-  htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 31999;
-  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 500;
-  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 31999;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 2000;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
   {
     Error_Handler();
   }
   sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
   {
     Error_Handler();
   }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN TIM3_Init 2 */
+  /* USER CODE BEGIN TIM4_Init 2 */
 
-  /* USER CODE END TIM3_Init 2 */
+  /* USER CODE END TIM4_Init 2 */
 
 }
 
@@ -261,7 +299,7 @@ static void MX_UART4_Init(void)
 
   /* USER CODE END UART4_Init 1 */
   huart4.Instance = UART4;
-  huart4.Init.BaudRate = 57600;
+  huart4.Init.BaudRate = 115200;
   huart4.Init.WordLength = UART_WORDLENGTH_8B;
   huart4.Init.StopBits = UART_STOPBITS_1;
   huart4.Init.Parity = UART_PARITY_NONE;
@@ -289,7 +327,7 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA2_Channel3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Channel3_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA2_Channel3_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(DMA2_Channel3_IRQn);
 
 }
@@ -301,20 +339,96 @@ static void MX_DMA_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 /* USER CODE BEGIN MX_GPIO_Init_1 */
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(ble_brk_GPIO_Port, ble_brk_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : ble_brk_Pin */
+  GPIO_InitStruct.Pin = ble_brk_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(ble_brk_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
+	if (huart==&huart4) {
+		UART4_RxCpltCallback(huart, Size);
+	}
+}
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if(htim==&htim4) {
+		if (isConnected) {
+			switch (msgType) {
+				case 0:
+					HAL_UART_Transmit(&huart4, getCommand(TEMP_GET), strlen((char *) getCommand(TEMP_GET)), 0x1000);
+					break;
+				case 3:
+					HAL_UART_Transmit(&huart4, getCommand(RSSI_GET), strlen((char *) getCommand(RSSI_GET)), 0x1000);
+					break;
+				default:
+					transmitPing();
+					break;
+			}
+		}
+	}
+}
+
+void st7789_DrawStartScreen() {
+	st7789_PrintString(20, 70, BLUE_st7789, WHITE_st7789, 1, &font_11x18, 2, "Инициализация");
+	st7789_PrintString(125, 120, BLUE_st7789, WHITE_st7789, 1, &font_11x18, 2, "BLE");
+}
+
+void st7789_DrawErrScreen() {
+  st7789_FillRect(0, 0,  320, 240, WHITE_st7789);
+  st7789_PrintString(50, 90, RED_st7789, WHITE_st7789, 1, &font_11x18, 2, "Ошибка BLE");
+}
+
+void st7789_DrawBleConnScreen() {
+	st7789_FillRect(0, 0,  320, 240, WHITE_st7789);
+	st7789_PrintString(20, 70, BLUE_st7789, WHITE_st7789, 1, &font_11x18, 2, "Подключение к");
+	st7789_PrintString(105, 120, BLUE_st7789, WHITE_st7789, 1, &font_11x18, 2, "Slave");
+}
+
+void st7789_DrawDataScreen() {
+	st7789_FillRect(0, 0,  320, 240, WHITE_st7789);
+	st7789_PrintString(20, 10, CYAN_st7789, WHITE_st7789, 1, &font_11x18, 1, "Master mode");
+	st7789_PrintString(220, 10, BLACK_st7789, GREEN_st7789, 1, &font_11x18, 1, "Сопряжен");
+
+	st7789_PrintString(20, 35, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, "Текущая темп.C:");
+	st7789_PrintString(20, 55, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, "Минимальная темп.C:");
+	st7789_PrintString(20, 75, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, "Максимальная темп.C:");
+
+	st7789_PrintString(20, 100, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, "Текущий RSSI,dbm:");
+	st7789_PrintString(20, 120, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, "Минимальный RSSI,dbm:");
+	st7789_PrintString(20, 140, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, "Максимальная RSSI,dbm:");
+
+	st7789_PrintString(20, 165, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, "RX/TX/Loss:");
+	st7789_PrintString(20, 185, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, "Последнее сообщение:");
+}
+
+void transmitPing() {
+	currPing++;
+	snprintf(currentPingStr, sizeof(currentPingStr), "%d", currPing);
+	strcat(currentTxBuf, ping);
+	strcat(currentTxBuf, currentPingStr);
+
+	HAL_UART_Transmit(&huart4, (uint8_t *) currentTxBuf, 100, 0xFFFF);
+	memset(currentTxBuf, 0, 50);
+	memset(currentPingStr, 0, 20);
+}
 /* USER CODE END 4 */
 
 /**
