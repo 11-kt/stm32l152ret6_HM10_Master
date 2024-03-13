@@ -21,21 +21,17 @@
 	char maxRSSI[10] = "-250";				// max RSSI buffer
 //---------------------------------------------------------------------------------------------------//
 	uint16_t currPongRx = -1;				// current num of transmitted data
-	uint16_t currPingTx = -1;				// current num of received data
-	uint16_t countOfRxData;					// amount of received data
-	uint16_t countOfTxData;					// amount of transmitted data
 	uint16_t loss = 0;						// current num of lost data
 //---------------------------------------------------------------------------------------------------//
 	const char * pong = "pong";				// const start of transmit massage
 //---------------------------------------------------------------------------------------------------//
 	char currPongRxStr[20];					// sub buffer for prost proc transmit massage
-	char currPingTxStr[20];					// sub buffer for post proc received massage
 	char currLossStr[20] = "0";				// sub buffer to post proc lost data
 //---------------------------------------------------------------------------------------------------//
 	char currTxBuf[50];						// sub buffer for check current massage to transmit
 	char currRxBuf[50];						// sub buffer for check current massage to receive
 	char stats[50];							// RX/TX/LOSS stats buffer
-	uint8_t rxDataControlList[255] = {0};	// received Data control list
+	uint8_t rxDataControlList[1024] = {0};	// received Data control list
 //---------------------------------------------------------------------------------------------------//
 	char rxBufNumStr[20];					// sub buffer to control expected receved num and actual
 	uint16_t rxBufNum = 0;					// int of actual received num
@@ -209,8 +205,14 @@ void getMsgEvent(UART_HandleTypeDef *huart) {
 	if (msgType == 5) msgType = 0;
 	/* Create current expected received string */
 	currPongRx++;
-	if (currPongRx % 256 == 0) {
-		memset(rxDataControlList, 0, 255);
+	/* Start new cycle if received > 1024 messages */
+	if (currPongRx % 1024 == 0) {
+		memset(rxDataControlList, 0, 1024);
+		memset(stats, 0, 50);
+		currPingTx = -1;
+		currPongRx = 0;
+		loss = 0;
+		rxBufNum = 0;
 	}
 	snprintf(currPongRxStr, sizeof(currPongRxStr), "%d", currPongRx);
 	strcat(currRxBuf, pong);
@@ -225,7 +227,7 @@ void getMsgEvent(UART_HandleTypeDef *huart) {
 		/* Mark received string in rxDataControlList*/
 		rxDataControlList[rxBufNum] = 1;
 		uint8_t lostPocket = 0;
-		for (uint8_t j=0; j < currPongRx % 256; j++) {
+		for (uint8_t j=0; j < currPongRx; j++) {
 			if (rxDataControlList[j] == 0) lostPocket++;
 		}
 		snprintf(currLossStr, sizeof(currLossStr), "%d", lostPocket);
@@ -244,18 +246,12 @@ void getMsgEvent(UART_HandleTypeDef *huart) {
 		/* Mark received string in rxDataControlList*/
 		rxDataControlList[rxBufNum] = 1;
 		uint8_t lostPocket = 0;
-		for (uint8_t j=0; j < currPongRx % 256; j++) {
+		for (uint8_t j=0; j < currPongRx; j++) {
 			if (rxDataControlList[j] == 0) lostPocket++;
 		}
 		snprintf(currLossStr, sizeof(currLossStr), "%d", lostPocket);
 		memset(rxBufNumStr, 0, 50);
 		/* Create current transmit data */
-		currPingTx++;
-		snprintf(currPingTxStr, sizeof(currPingTxStr), "%d", currPingTx);
-		strcat(currTxBuf, ping);
-		strcat(currTxBuf, currPingTxStr);
-		/* Transmit created data */
-		HAL_UART_Transmit(huart, (uint8_t *) currTxBuf, 50, 0xFFFF);
 		/* Display current received data to user */
 		st7789_FillRect(0, 210, 320, 20, WHITE_st7789);
 		st7789_PrintString(20, 210, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, (char *) rxBuf);

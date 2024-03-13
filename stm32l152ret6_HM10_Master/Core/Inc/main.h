@@ -39,8 +39,9 @@ extern "C" {
 extern uint8_t rxBuf[];
 extern volatile uint8_t isConnected;
 extern volatile uint8_t msgType;
-extern uint16_t currPing;
+extern uint16_t currPingTx;
 extern char * ping;
+extern char currPingTxStr[];
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -65,6 +66,9 @@ void transmitPing();
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define btn_Pin GPIO_PIN_13
+#define btn_GPIO_Port GPIOC
+#define btn_EXTI_IRQn EXTI15_10_IRQn
 #define ble_brk_Pin GPIO_PIN_12
 #define ble_brk_GPIO_Port GPIOC
 

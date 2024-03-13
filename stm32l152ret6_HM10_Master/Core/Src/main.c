@@ -56,12 +56,10 @@ volatile uint8_t msgType = 0;
 char temp[10] = {'\0'};
 char rssi[10] = {'\0'};
 
-uint16_t currPing = -1;
+uint16_t currPingTx = -1;
 char * ping = "ping";
-
-
+char currPingTxStr[20];
 char currentTxBuf[50];
-char currentPingStr[20];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -343,11 +341,17 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(ble_brk_GPIO_Port, ble_brk_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : btn_Pin */
+  GPIO_InitStruct.Pin = btn_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(btn_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : ble_brk_Pin */
   GPIO_InitStruct.Pin = ble_brk_Pin;
@@ -355,6 +359,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(ble_brk_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -385,15 +393,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if(GPIO_Pin == btn_Pin) {
+		checkConnection(&huart4);
+	}
+}
+
 void transmitPing() {
-	currPing++;
-	snprintf(currentPingStr, sizeof(currentPingStr), "%d", currPing);
+	currPingTx++;
+	snprintf(currPingTxStr, sizeof(currPingTxStr), "%d", currPingTx);
 	strcat(currentTxBuf, ping);
-	strcat(currentTxBuf, currentPingStr);
+	strcat(currentTxBuf, currPingTxStr);
 
 	HAL_UART_Transmit(&huart4, (uint8_t *) currentTxBuf, 100, 0xFFFF);
 	memset(currentTxBuf, 0, 50);
-	memset(currentPingStr, 0, 20);
 }
 /* USER CODE END 4 */
 
