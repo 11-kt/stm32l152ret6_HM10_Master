@@ -223,11 +223,11 @@ void getMsgEvent(UART_HandleTypeDef *huart) {
 	}
 	rxBufNum = atoi(rxBufNumStr);
 	/* if get previous message */
+	uint16_t lostPocket = 0;
 	if (rxBufNum < currPongRx) {
 		/* Mark received string in rxDataControlList*/
 		rxDataControlList[rxBufNum] = 1;
-		uint8_t lostPocket = 0;
-		for (uint8_t j=0; j < currPongRx; j++) {
+		for (uint16_t j=0; j < currPongRx % 1024; j++) {
 			if (rxDataControlList[j] == 0) lostPocket++;
 		}
 		snprintf(currLossStr, sizeof(currLossStr), "%d", lostPocket);
@@ -245,8 +245,7 @@ void getMsgEvent(UART_HandleTypeDef *huart) {
 	else {
 		/* Mark received string in rxDataControlList*/
 		rxDataControlList[rxBufNum] = 1;
-		uint8_t lostPocket = 0;
-		for (uint8_t j=0; j < currPongRx; j++) {
+		for (uint16_t j=0; j < currPongRx % 1024; j++) {
 			if (rxDataControlList[j] == 0) lostPocket++;
 		}
 		snprintf(currLossStr, sizeof(currLossStr), "%d", lostPocket);
