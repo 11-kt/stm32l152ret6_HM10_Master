@@ -58,21 +58,21 @@
 			memcpy((uint8_t *) subBuf + oldPos, rxBuf, size);
 			newPos = size + oldPos;
 		}
+		/* if get common message text */
+		if (strstr ((char *) rxBuf, (char *) "pong") != NULL) {
+			getMsgEvent(huart);
+		}
 		/* if get successful connection message from HM10 */
-		if (strcmp ((char *) rxBuf, (char *) "OK+CONN\r\n") == 0) {
+		if (strstr ((char *) rxBuf, (char *) "OK+CONN\r\n") != NULL) {
 			connEvent();
 		}
 		/* if get lost connection message from HM10 */
-		else if (strcmp ((char *) rxBuf, (char *) "OK+LOST\r\n") == 0) {
+		if (strstr ((char *) rxBuf, (char *) "OK+LOST\r\n") != NULL) {
 			connLostEvent();
 		}
 		/* if get temperature or RSSI request from connected device */
-		else if (rxBuf[0] == 'O' && rxBuf[1] == 'K' && rxBuf[2] == '+') {
+		if (strstr ((char *) rxBuf, (char *) "OK+Get") != NULL) {
 			getTempRssiEvent();
-		}
-		/* if get common message text */
-		else {
-			getMsgEvent(huart);
 		}
 		/* Start new DMA Idle interrupt */
 		HAL_UARTEx_ReceiveToIdle_DMA(huart, (uint8_t *) rxBuf, rxBuf_SIZE);
@@ -206,7 +206,7 @@ void getMsgEvent(UART_HandleTypeDef *huart) {
 	/* Create current expected received string */
 	currPongRx++;
 	/* Start new cycle if received > 1024 messages */
-	if (currPongRx % 1024 == 0) {
+	if (currPongRx % 1024 == 0 && currPongRx > 0) {
 		memset(rxDataControlList, 0, 1024);
 		memset(stats, 0, 50);
 		currPingTx = -1;
