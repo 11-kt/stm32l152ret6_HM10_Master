@@ -13,6 +13,7 @@
 #include "st7789/st7789.h"
 #include <string.h>
 #include <stdio.h>
+#include "HM-10/HM10_Setup.h"
 
 #define 	rxBuf_SIZE		128
 #define		subBuf_SIZE		256

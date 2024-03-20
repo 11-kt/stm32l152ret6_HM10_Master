@@ -147,6 +147,59 @@ hm10_connection_status connectOtherHM10(UART_HandleTypeDef *huart) {
 }
 
 /**
+  * @brief  Reconnect device to mac addr
+  * @note   Only master mode and only default mac addr (check header)
+  * @param  Current HM10 huart
+  * @retval setup_result hm10_connection_status
+  */
+hm10_connection_status reconnectOtherHM10(UART_HandleTypeDef *huart) {
+	clearingBuf();
+
+	getAddr(huart);
+	usDelay(delayUs);
+
+	char *token = strtok(dma_res, ":");
+	token = strtok(NULL, ":");
+	if (strcmp (token, default_mac_addr1) == 0) {
+		token = default_mac_addr2;
+	}
+	else if (strcmp (token, default_mac_addr2) == 0) {
+		token = default_mac_addr1;
+	}
+	else {
+		return disconnected;
+	}
+	clearingBuf();
+
+	while (reconnectToAddr(huart, token) != connected) {
+		clearingBuf();
+	}
+
+	return connected;
+}
+hm10_connection_status reconnectToAddr(UART_HandleTypeDef *huart, char* addr) {
+
+	char* tx_cmd = concat_cmd_str((char *) getCommand(CONN), addr);
+
+	HAL_UART_Receive_DMA(huart, (uint8_t *) dma_res, getResLength(CONN));
+	HAL_UART_Transmit(huart, (uint8_t *) tx_cmd, strlen(tx_cmd), 0xFFFF);
+	DelayMicroseconds(200000);
+
+	if (strcmp ( dma_res, "OK+CONNA\r\nOK+CONN\r\n" ) != 0) {
+		return disconnected;
+	}
+
+	return connected;
+}
+void DelayMicroseconds(uint32_t us) {
+    volatile uint32_t counter = 0;
+    // Calculating the number of cycles needed for the given microseconds
+    uint32_t cycles = (SystemCoreClock / 1000000) * us;
+
+    // Delay loop
+    for(counter = 0; counter < cycles; counter++);
+}
+/**
   * @brief  Connect device to mac addr
   * @note   Only master mode
   * @param  Current HM10 huart
