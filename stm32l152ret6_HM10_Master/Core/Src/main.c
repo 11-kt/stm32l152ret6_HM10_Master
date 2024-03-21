@@ -58,7 +58,7 @@ volatile uint8_t isRSSI = 0;
 
 char temp[10] = {'\0'};
 char rssi[10] = {'\0'};
-
+//RTC_TimeTypeDef sTime = {0};
 uint16_t currPingTx = -1;
 char * ping = "ping";
 char currPingTxStr[20];
@@ -129,16 +129,11 @@ int main(void)
 
   st7789_DrawBleConnScreen();
 
-  RTC_TimeTypeDef sTime = {0};
-  RTC_DateTypeDef sDate = {0};
-  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-  char dateStr[20]; // Adjust the size as needed
-  sprintf(dateStr, "%02d:%02d:%02d", sTime.Hours, sTime.Minutes, sTime.Seconds);
-
   connectOtherHM10(&huart4);
   eraseDataFlash();
   isConnected = 1;
+
+  HAL_RTCEx_EnableBypassShadow(&hrtc);
 
   st7789_DrawDataScreen();
 

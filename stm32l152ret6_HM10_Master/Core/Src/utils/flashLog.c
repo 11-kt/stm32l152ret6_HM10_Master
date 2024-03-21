@@ -9,7 +9,9 @@
 
 uint32_t DATA_EEPROM_START_ADDR = (uint32_t) 0x08080000;	// start data flash addr
 uint32_t DATA_EEPROM_END_ADDR	= (uint32_t) 0x08080FFF;	// end data flash addr
-
+char timeStr[10];
+RTC_DateTypeDef sDate = {0};
+RTC_TimeTypeDef sTime = {0};
 /**
   * @brief  Erase all data flash cells from DATA_EEPROM_START_ADDR to DATA_EEPROM_END_ADDR
   * @retval void
@@ -71,14 +73,21 @@ void writeStringToDataFlash(const char *str) {
         return;
     }
 
+    sprintf(timeStr, "%02d:%02d", Get_RTC_Minutes(), Get_RTC_Seconds());
+    /* Write the string time to the data flash */
+	for (size_t i = 0; i < len; i++) {
+		/* Write data to current cell */
+		status = HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_BYTE, DATA_EEPROM_START_ADDR + i, timeStr[i]);
+		if (status != HAL_OK) {
+			/* Error handling */
+			return;
+		}
+	}
+    /* Next cell addr */
+    DATA_EEPROM_START_ADDR += 0x8;
+
     /* Write the string to the data flash */
-    for (size_t i = 0; i < len; ++i) {
-    	/* Erase current cell */
-//    	status = HAL_FLASHEx_DATAEEPROM_Erase(0x02u, DATA_EEPROM_START_ADDR + i);
-//    	if (status != HAL_OK) {
-//			/* Error handling */
-//			return;
-//		}
+    for (size_t i = 0; i < len; i++) {
     	/* Write data to current cell */
         status = HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_BYTE, DATA_EEPROM_START_ADDR + i, str[i]);
         if (status != HAL_OK) {
@@ -101,4 +110,13 @@ void writeStringToDataFlash(const char *str) {
     }
     /* Next cell addr */
     DATA_EEPROM_START_ADDR += 0x8;
+}
+
+uint8_t Get_RTC_Minutes(void) {
+    return (uint8_t)((RTC->TR & RTC_TR_MNU_Msk) >> RTC_TR_MNU_Pos);
+}
+
+// Function to get seconds from RTC
+uint8_t Get_RTC_Seconds(void) {
+    return (uint8_t)((RTC->TR & RTC_TR_ST_Msk) >> RTC_TR_ST_Pos);
 }
