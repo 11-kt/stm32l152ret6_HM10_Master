@@ -24,6 +24,7 @@
 #include <string.h>
 #include "HM-10/recieveData.h"
 #include "HM-10/HM10_Setup.h"
+#include "utils/flashLog.h"
 #include "st7789/st7789_Views/st7789_Data_Views.h"
 /* USER CODE END Includes */
 
@@ -125,6 +126,7 @@ int main(void)
   st7789_DrawBleConnScreen();
 
   connectOtherHM10(&huart4);
+//  eraseDataFlash();
   isConnected = 1;
 
   st7789_DrawDataScreen();
@@ -388,6 +390,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		else if (isConnected == 0) {
 			reconnectOtherHM10(&huart4);
 			isConnected = 1;
+			writeStringToDataFlash("Conn");
 			/* Display successful connection to user */
 			st7789_FillRect(170, 10, 150, 20, WHITE_st7789);
 			/* Clear previous received data stats */
