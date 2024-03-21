@@ -51,7 +51,7 @@ DMA_HandleTypeDef hdma_uart4_rx;
 
 /* USER CODE BEGIN PV */
 volatile uint8_t isConnected = 0;
-volatile uint8_t msgType = 0;
+volatile uint8_t isRSSI = 0;
 
 char temp[10] = {'\0'};
 char rssi[10] = {'\0'};
@@ -378,17 +378,24 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if(htim==&htim4) {
 		if (isConnected) {
-			switch (msgType) {
-				case 0:
-					HAL_UART_Transmit(&huart4, getCommand(TEMP_GET), strlen((char *) getCommand(TEMP_GET)), 0x1000);
-					break;
-				case 3:
-					HAL_UART_Transmit(&huart4, getCommand(RSSI_GET), strlen((char *) getCommand(RSSI_GET)), 0x1000);
-					break;
-				default:
-					transmitPing();
-					break;
+			if (isRSSI == 0) {
+				HAL_UART_Transmit(&huart4, getCommand(RSSI_GET), strlen((char *) getCommand(RSSI_GET)), 0x1000);
 			}
+			else {
+				transmitPing();
+			}
+		}
+		else if (isConnected == 0) {
+			reconnectOtherHM10(&huart4);
+			isConnected = 1;
+			/* Display successful connection to user */
+			st7789_FillRect(170, 10, 150, 20, WHITE_st7789);
+			/* Clear previous received data stats */
+			st7789_FillRect(160, 165, 150, 20, WHITE_st7789);
+			/* Change connection status */
+			st7789_PrintString(220, 10, BLACK_st7789, GREEN_st7789, 1, &font_11x18, 1, "Сопряжен");
+			HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rxBuf, rxBuf_SIZE);
+			__HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
 		}
 	}
 }

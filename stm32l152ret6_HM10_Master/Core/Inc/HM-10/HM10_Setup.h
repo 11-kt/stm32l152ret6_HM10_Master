@@ -16,6 +16,7 @@
 
 #define delayUs 0x186A0						// default setup delay
 
+extern TIM_HandleTypeDef htim3;
 #define default_mac_addr1 "D43639A63CD3"	// default device mac 1
 #define default_mac_addr2 "D43639AB8B20"	// default device mac 2
 
@@ -54,9 +55,12 @@ typedef enum {
 //---------------------------------------------------------------------------------------------------------------------------------------------//
 	hm10_connection_status connectOtherHM10(UART_HandleTypeDef *huart);								// connect to other (default mac addr) HM10
 	hm10_connection_status connectToAddr(UART_HandleTypeDef *huart, char* addr);					// connect to mac (only in master mode)
+	hm10_connection_status reconnectOtherHM10(UART_HandleTypeDef *huart);							// reconnect
+	hm10_connection_status reconnectToAddr(UART_HandleTypeDef *huart, char* addr);
 //---------------------------------------------------------------------------------------------------------------------------------------------//
 	char* concat_str(char * cmd, char mode);														// Concat string command and mode char
 	char* concat_cmd_str(char * cmd, char * str);													// Concat string commands
 	void clearingBuf();																				// Clear DMA receive buf
+	void delayMicSec(uint32_t us);																	// Delay based on sys clock
 //---------------------------------------------------------------------------------------------------------------------------------------------//
 #endif /* INC_HM10_SETUP_H_ */
