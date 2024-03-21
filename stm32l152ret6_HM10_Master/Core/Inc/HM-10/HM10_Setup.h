@@ -61,5 +61,6 @@ typedef enum {
 	char* concat_str(char * cmd, char mode);														// Concat string command and mode char
 	char* concat_cmd_str(char * cmd, char * str);													// Concat string commands
 	void clearingBuf();																				// Clear DMA receive buf
+	void delayMicSec(uint32_t us);																	// Delay based on sys clock
 //---------------------------------------------------------------------------------------------------------------------------------------------//
 #endif /* INC_HM10_SETUP_H_ */

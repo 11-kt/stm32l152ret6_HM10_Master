@@ -70,8 +70,7 @@
 		if (strstr ((char *) rxBuf, (char *) "OK+LOST\r\n") != NULL) {
 			connLostEvent();
 			isConnected = 0;
-			reconnectOtherHM10(huart);
-			isConnected = 1;
+			return;
 		}
 		/* if get temperature or RSSI request from connected device */
 		if (strstr ((char *) rxBuf, (char *) "OK+Get") != NULL) {

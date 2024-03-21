@@ -153,10 +153,11 @@ hm10_connection_status connectOtherHM10(UART_HandleTypeDef *huart) {
   * @retval setup_result hm10_connection_status
   */
 hm10_connection_status reconnectOtherHM10(UART_HandleTypeDef *huart) {
+	delayMicSec(20000);
 	clearingBuf();
 
 	getAddr(huart);
-	usDelay(delayUs);
+	delayMicSec(20000);
 
 	char *token = strtok(dma_res, ":");
 	token = strtok(NULL, ":");
@@ -177,28 +178,25 @@ hm10_connection_status reconnectOtherHM10(UART_HandleTypeDef *huart) {
 
 	return connected;
 }
+
+/**
+  * @brief Reconnect device to mac addr
+  * @note   Only master mode
+  * @param  Current HM10 huart
+  * @param  Mac addr slave device
+  * @retval setup_result hm10_connection_status
+  */
 hm10_connection_status reconnectToAddr(UART_HandleTypeDef *huart, char* addr) {
-
 	char* tx_cmd = concat_cmd_str((char *) getCommand(CONN), addr);
-
 	HAL_UART_Receive_DMA(huart, (uint8_t *) dma_res, getResLength(CONN));
 	HAL_UART_Transmit(huart, (uint8_t *) tx_cmd, strlen(tx_cmd), 0xFFFF);
-	DelayMicroseconds(200000);
-
-	if (strcmp ( dma_res, "OK+CONNA\r\nOK+CONN\r\n" ) != 0) {
+	delayMicSec(20000);
+	if (strstr ( dma_res, "OK+CONNA\r\nOK+CONN\r\n" ) == NULL) {
 		return disconnected;
 	}
-
 	return connected;
 }
-void DelayMicroseconds(uint32_t us) {
-    volatile uint32_t counter = 0;
-    // Calculating the number of cycles needed for the given microseconds
-    uint32_t cycles = (SystemCoreClock / 1000000) * us;
 
-    // Delay loop
-    for(counter = 0; counter < cycles; counter++);
-}
 /**
   * @brief  Connect device to mac addr
   * @note   Only master mode
@@ -683,4 +681,17 @@ char* concat_cmd_str(char * cmd, char * str) {
   */
 void clearingBuf() {
 	memset(dma_res, 0, 30);
+}
+
+/**
+  * @brief  Delay microseconds on sys clock
+  * @param	uint32_t us - microseconds value
+  * @retval void
+  */
+void delayMicSec(uint32_t us) {
+    volatile uint32_t counter = 0;
+    /* Calculating the number of cycles needed for the given microseconds */
+    uint32_t cycles = (SystemCoreClock / 1000000) * us;
+    /* Delay loop */
+    for(counter = 0; counter < cycles; counter++);
 }
