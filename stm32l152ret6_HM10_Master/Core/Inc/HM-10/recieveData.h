@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "HM-10/HM10_Setup.h"
+#include "utils/flashLog.h"
 
 #define 	rxBuf_SIZE		128
 #define		subBuf_SIZE		256

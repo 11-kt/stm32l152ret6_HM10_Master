@@ -58,8 +58,10 @@
 			memcpy((uint8_t *) subBuf + oldPos, rxBuf, size);
 			newPos = size + oldPos;
 		}
+
 		/* if get common message text */
 		if (strstr ((char *) rxBuf, (char *) "pong") != NULL) {
+			writeStringToDataFlash((char*) rxBuf);
 			getMsgEvent(huart);
 		}
 		/* if get successful connection message from HM10 */
@@ -70,6 +72,7 @@
 		if (strstr ((char *) rxBuf, (char *) "OK+LOST\r\n") != NULL) {
 			connLostEvent();
 			isConnected = 0;
+			writeStringToDataFlash((char *) " Lost");
 			return;
 		}
 		/* if get temperature or RSSI request from connected device */
@@ -150,7 +153,7 @@ void getRssiEvent() {
 			currentChar++;
 		}
 	}
-
+	writeStringToDataFlash(res_str);
 	/* Current RSSI value is higher than maxRSSI */
 	if (strcmp( maxRSSI, res_str ) < 0) {
 		strncpy(maxRSSI, res_str, 10);

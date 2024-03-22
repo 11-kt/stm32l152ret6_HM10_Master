@@ -24,6 +24,7 @@
 #include <string.h>
 #include "HM-10/recieveData.h"
 #include "HM-10/HM10_Setup.h"
+#include "utils/flashLog.h"
 #include "st7789/st7789_Views/st7789_Data_Views.h"
 /* USER CODE END Includes */
 
@@ -52,10 +53,10 @@ DMA_HandleTypeDef hdma_uart4_rx;
 /* USER CODE BEGIN PV */
 volatile uint8_t isConnected = 0;
 volatile uint8_t isRSSI = 0;
-
+volatile uint8_t reconnectingNum = 0;
 char temp[10] = {'\0'};
 char rssi[10] = {'\0'};
-
+//RTC_TimeTypeDef sTime = {0};
 uint16_t currPingTx = -1;
 char * ping = "ping";
 char currPingTxStr[20];
@@ -125,9 +126,11 @@ int main(void)
   st7789_DrawBleConnScreen();
 
   connectOtherHM10(&huart4);
+  eraseDataFlash();
   isConnected = 1;
 
   st7789_DrawDataScreen();
+  st7789_PrintString(293, 55, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, "0");
 
   HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rxBuf, rxBuf_SIZE);
   __HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
@@ -387,13 +390,23 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		}
 		else if (isConnected == 0) {
 			reconnectOtherHM10(&huart4);
-			isConnected = 1;
 			/* Display successful connection to user */
 			st7789_FillRect(170, 10, 150, 20, WHITE_st7789);
 			/* Clear previous received data stats */
 			st7789_FillRect(160, 165, 150, 20, WHITE_st7789);
+			writeStringToDataFlash((char *) " Conn");
 			/* Change connection status */
 			st7789_PrintString(220, 10, BLACK_st7789, GREEN_st7789, 1, &font_11x18, 1, "Сопряжен");
+			reconnectingNum++;
+			char recStr[4];
+			sprintf(recStr, "%d", reconnectingNum);
+			if (reconnectingNum < 10) {
+				st7789_PrintString(293, 55, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, recStr);
+			}
+			else {
+				st7789_PrintString(280, 55, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, recStr);
+			}
+			isConnected = 1;
 			HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rxBuf, rxBuf_SIZE);
 			__HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
 		}

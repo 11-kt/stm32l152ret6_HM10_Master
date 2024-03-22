@@ -14,6 +14,7 @@
 	void st7789_DrawStartScreen();		// draw start screen info (init ble)
 	void st7789_DrawErrScreen();		// draw error message (if ble init fault)
 	void st7789_DrawDataScreen();		// draw data info screen
+	void st7789_DrawBleConnScreen();	// draw BLE connecting wait
 //--------------------------------------------------------------------------------//
 
 #endif /* INC_ST7789_ST7789_VIEWS_ST7789_DATA_VIEWS_H_ */
