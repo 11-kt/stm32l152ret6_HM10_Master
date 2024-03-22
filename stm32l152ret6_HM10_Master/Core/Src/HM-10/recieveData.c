@@ -66,14 +66,13 @@
 		}
 		/* if get successful connection message from HM10 */
 		if (strstr ((char *) rxBuf, (char *) "OK+CONN\r\n") != NULL) {
-			writeStringToDataFlash("Conn");
 			connEvent();
 		}
 		/* if get lost connection message from HM10 */
 		if (strstr ((char *) rxBuf, (char *) "OK+LOST\r\n") != NULL) {
-			writeStringToDataFlash("Lost");
 			connLostEvent();
 			isConnected = 0;
+			writeStringToDataFlash((char *) " Lost");
 			return;
 		}
 		/* if get temperature or RSSI request from connected device */

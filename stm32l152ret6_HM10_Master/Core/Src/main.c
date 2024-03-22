@@ -44,8 +44,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-RTC_HandleTypeDef hrtc;
-
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim4;
 
@@ -55,7 +53,7 @@ DMA_HandleTypeDef hdma_uart4_rx;
 /* USER CODE BEGIN PV */
 volatile uint8_t isConnected = 0;
 volatile uint8_t isRSSI = 0;
-
+volatile uint8_t reconnectingNum = 0;
 char temp[10] = {'\0'};
 char rssi[10] = {'\0'};
 //RTC_TimeTypeDef sTime = {0};
@@ -72,7 +70,6 @@ static void MX_DMA_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_UART4_Init(void);
 static void MX_TIM4_Init(void);
-static void MX_RTC_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -113,7 +110,6 @@ int main(void)
   MX_TIM2_Init();
   MX_UART4_Init();
   MX_TIM4_Init();
-  MX_RTC_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim2);
 
@@ -133,9 +129,8 @@ int main(void)
   eraseDataFlash();
   isConnected = 1;
 
-  HAL_RTCEx_EnableBypassShadow(&hrtc);
-
   st7789_DrawDataScreen();
+  st7789_PrintString(293, 55, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, "0");
 
   HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rxBuf, rxBuf_SIZE);
   __HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
@@ -163,7 +158,6 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Configure the main internal regulator output voltage
   */
@@ -172,10 +166,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL6;
@@ -198,47 +191,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC;
-  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    Error_Handler();
-  }
-}
-
-/**
-  * @brief RTC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_RTC_Init(void)
-{
-
-  /* USER CODE BEGIN RTC_Init 0 */
-
-  /* USER CODE END RTC_Init 0 */
-
-  /* USER CODE BEGIN RTC_Init 1 */
-
-  /* USER CODE END RTC_Init 1 */
-
-  /** Initialize RTC Only
-  */
-  hrtc.Instance = RTC;
-  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
-  hrtc.Init.AsynchPrediv = 127;
-  hrtc.Init.SynchPrediv = 255;
-  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
-  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
-  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
-  if (HAL_RTC_Init(&hrtc) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN RTC_Init 2 */
-
-  /* USER CODE END RTC_Init 2 */
-
 }
 
 /**
@@ -438,14 +390,23 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		}
 		else if (isConnected == 0) {
 			reconnectOtherHM10(&huart4);
-			isConnected = 1;
-			writeStringToDataFlash("Conn");
 			/* Display successful connection to user */
 			st7789_FillRect(170, 10, 150, 20, WHITE_st7789);
 			/* Clear previous received data stats */
 			st7789_FillRect(160, 165, 150, 20, WHITE_st7789);
+			writeStringToDataFlash((char *) " Conn");
 			/* Change connection status */
 			st7789_PrintString(220, 10, BLACK_st7789, GREEN_st7789, 1, &font_11x18, 1, "Сопряжен");
+			reconnectingNum++;
+			char recStr[4];
+			sprintf(recStr, "%d", reconnectingNum);
+			if (reconnectingNum < 10) {
+				st7789_PrintString(293, 55, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, recStr);
+			}
+			else {
+				st7789_PrintString(280, 55, BLACK_st7789, WHITE_st7789, 1, &font_11x18, 1, recStr);
+			}
+			isConnected = 1;
 			HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rxBuf, rxBuf_SIZE);
 			__HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
 		}

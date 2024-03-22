@@ -58,10 +58,6 @@ extern char currPingTxStr[];
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void st7789_DrawStartScreen();
-void st7789_DrawErrScreen();
-void st7789_DrawBleConnScreen();
-void st7789_DrawDataScreen();
 void transmitPing();
 /* USER CODE END EFP */
 

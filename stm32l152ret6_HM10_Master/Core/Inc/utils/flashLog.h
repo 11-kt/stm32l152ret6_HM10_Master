@@ -13,8 +13,6 @@
 #include "stm32l1xx_hal.h"
 #include "stdio.h"
 
-extern RTC_TimeTypeDef sTime;
-extern RTC_HandleTypeDef hrtc;;
 //--------------------------------------------------------------------------------//
 	#define DATA_EEPROM_PAGE_SIZE   (uint32_t) FLASH_PAGE_SIZE	// size of 1 page
 	#define DATA_EEPROM_BASE		(uint32_t) FLASH_BASE		// flash base addr
